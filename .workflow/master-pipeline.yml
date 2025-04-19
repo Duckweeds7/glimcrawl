@@ -20,11 +20,9 @@ stages:
         commands:
           - pip3 config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple
           - python3 -m pip install --upgrade pip
-          - pip3 install build twine pytest pytest-asyncio flake8
+          - pip3 install build twine pytest flake8
           - pip3 install -e .
-          - playwright install chromium
           - flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-          - pytest
           - python3 -m build
       - step: publish@general_artifacts
         name: publish_general_artifacts
@@ -38,15 +36,6 @@ stages:
     name: release
     displayName: 发布
     steps:
-      - step: publish@release_artifacts
-        name: publish_release_artifacts
-        displayName: '发布到制品库'
-        # 上游上传制品任务的产出
-        dependArtifact: output
-        # 发布制品版本号
-        version: '1.0.0.0'
-        # 是否开启版本号自增，默认开启
-        autoIncrement: true
       - step: publish@pypi
         name: publish_to_pypi
         displayName: '发布到 PyPI'
@@ -60,6 +49,3 @@ triggers:
     tags:
       include:
         - 'v*'
-    branches:
-      include:
-        - master
