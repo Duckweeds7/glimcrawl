@@ -2,12 +2,16 @@ name: Publish to PyPI
 
 on:
   push:
+    branches:
+      - master
     tags:
       - 'v*'
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    # 只在打标签时发布到 PyPI
+    if: startsWith(github.ref, 'refs/tags/')
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python
