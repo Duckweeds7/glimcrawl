@@ -1,0 +1,25 @@
+version: '1.0'
+name: master-pipeline
+displayName: MasterPipeline
+stages:
+  - stage: 
+    name: sync
+    displayName: 同步到GitHub
+    steps:
+      - step: shell@agent
+        name: sync_to_github
+        displayName: 同步到GitHub
+        script: |
+          git remote add github https://Duckweeds7:${GITHUB_TOKEN}@github.com/Duckweeds7/glimcrawl.git || true
+          git push github master:master --force
+          git push github --tags --force
+        env:
+          GITHUB_TOKEN: ${GITHUB_TOKEN}
+triggers:
+  push:
+    branches:
+      include:
+        - master
+    tags:
+      include:
+        - '*' 
