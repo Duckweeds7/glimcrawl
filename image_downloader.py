@@ -5,6 +5,7 @@ import aiofiles
 from typing import List, Dict, Optional, Callable
 from loguru import logger
 from urllib.parse import urlparse
+from image_processor import ImageProcessor
 
 class ImageDownloader:
     """异步图片下载器，支持并行下载和进度跟踪"""
@@ -28,17 +29,19 @@ class ImageDownloader:
         self._download_semaphore = asyncio.Semaphore(max_concurrent)
         self._download_event = asyncio.Event()
         self._download_event.set()  # 初始状态为允许下载
+        self.image_processor = ImageProcessor(base_dir=save_dir)
         
         # 创建保存目录
         os.makedirs(save_dir, exist_ok=True)
         
-    async def _download_single_image(self, url: str, index: int) -> bool:
+    async def _download_single_image(self, url: str, index: int, keyword: str = "default") -> bool:
         """
         下载单张图片
         
         Args:
             url: 图片URL
             index: 图片索引
+            keyword: 搜索关键词，用于创建子文件夹
             
         Returns:
             bool: 下载是否成功
@@ -51,16 +54,6 @@ class ImageDownloader:
                     logger.info(f"下载已停止，跳过图片: {url}")
                     return False
                 
-                # 获取文件扩展名
-                parsed_url = urlparse(url)
-                path = parsed_url.path
-                file_ext = os.path.splitext(path)[1]
-                if not file_ext:
-                    file_ext = '.jpg'  # 默认扩展名
-                    
-                # 构建保存路径
-                save_path = os.path.join(self.save_dir, f"image_{index}{file_ext}")
-                
                 # 配置代理
                 proxy = self.proxy
                 if proxy:
@@ -72,20 +65,36 @@ class ImageDownloader:
                     if proxy:
                         async with session.get(url, timeout=30, proxy=proxy) as response:
                             if response.status == 200:
-                                async with aiofiles.open(save_path, 'wb') as f:
-                                    await f.write(await response.read())
-                                logger.info(f"成功下载图片: {save_path}")
-                                return True
+                                # 读取图片数据
+                                image_data = await response.read()
+                                
+                                # 使用图片处理器处理和保存图片
+                                save_path = self.image_processor.save_image(image_data, keyword, index)
+                                
+                                if save_path:
+                                    logger.info(f"成功下载并处理图片: {save_path}")
+                                    return True
+                                else:
+                                    logger.warning(f"处理图片失败: {url}")
+                                    return False
                             else:
                                 logger.warning(f"下载图片失败，状态码: {response.status}, URL: {url}")
                                 return False
                     else:
                         async with session.get(url, timeout=30) as response:
                             if response.status == 200:
-                                async with aiofiles.open(save_path, 'wb') as f:
-                                    await f.write(await response.read())
-                                logger.info(f"成功下载图片: {save_path}")
-                                return True
+                                # 读取图片数据
+                                image_data = await response.read()
+                                
+                                # 使用图片处理器处理和保存图片
+                                save_path = self.image_processor.save_image(image_data, keyword, index)
+                                
+                                if save_path:
+                                    logger.info(f"成功下载并处理图片: {save_path}")
+                                    return True
+                                else:
+                                    logger.warning(f"处理图片失败: {url}")
+                                    return False
                             else:
                                 logger.warning(f"下载图片失败，状态码: {response.status}, URL: {url}")
                                 return False
@@ -94,20 +103,21 @@ class ImageDownloader:
             logger.error(f"下载图片时发生错误: {e}, URL: {url}")
             return False
             
-    async def add_download_task(self, url: str, index: int) -> None:
+    async def add_download_task(self, url: str, index: int, keyword: str = "default") -> None:
         """
         添加下载任务
         
         Args:
             url: 图片URL
             index: 图片索引
+            keyword: 搜索关键词，用于创建子文件夹
         """
         if not self._download_event.is_set():
             logger.info(f"下载已停止，不再添加新任务: {url}")
             return
             
         self.total_count += 1
-        task = asyncio.create_task(self._download_single_image(url, index))
+        task = asyncio.create_task(self._download_single_image(url, index, keyword))
         self.download_tasks[url] = task
         
         # 添加回调以更新计数

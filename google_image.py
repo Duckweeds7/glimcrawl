@@ -360,7 +360,7 @@ if __name__ == "__main__":
             
             try:
                 # 设置搜索关键词和最大图片数量
-                keyword = "cr7"  # 示例关键词
+                keyword = "猫咪"  # 示例关键词
                 max_images = 100  # 最大获取图片数
                 save_dir = "downloaded_images"  # 保存目录
                 
