@@ -1,11 +1,16 @@
+"""
+图片下载器模块
+"""
+
 import asyncio
 import os
-import aiohttp
+from typing import List, Optional
+
 import aiofiles
-from typing import List, Dict, Optional, Callable
+import aiohttp
 from loguru import logger
-from urllib.parse import urlparse
-from image_processor import ImageProcessor
+
+from .image_processor import ImageProcessor
 
 class ImageDownloader:
     """异步图片下载器，支持并行下载和进度跟踪"""

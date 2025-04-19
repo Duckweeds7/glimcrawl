@@ -1,39 +1,159 @@
-# glimcrawl
+# GlimCrawl
 
-#### 介绍
-glimcrawl​​
-​​组合逻辑​​：glimpse（一瞥） + crawl（爬行），强调“快速捕捉网络图片片段”。
-​​技术关联​​：名称中的 crawl 直接关联爬虫功能，符合开发者直觉；glim 部分赋予名称动态感，适合需要实时爬取的应用场景（如热点图片监控）。
+一个强大的Google图片爬虫工具，支持批量下载、图片处理和代理设置。
 
-#### 软件架构
-软件架构说明
+## 特性
 
+- 支持Google图片搜索结果的批量下载
+- 异步并发下载，提高效率
+- 自动图片处理和优化
+- 支持代理设置
+- 支持图片尺寸和时间筛选
+- 命令行界面，易于使用
+- 支持作为Python库导入使用
 
-#### 安装教程
+## 安装
 
-1.  xxxx
-2.  xxxx
-3.  xxxx
+```bash
+# 从PyPI安装
+pip install glimcrawl
 
-#### 使用说明
+# 从源码安装
+git clone https://gitee.com/duckweeds7/glimcrawl.git
+cd glimcrawl
+pip install -e .
+```
 
-1.  xxxx
-2.  xxxx
-3.  xxxx
+## 快速开始
 
-#### 参与贡献
+### 命令行使用
 
-1.  Fork 本仓库
-2.  新建 Feat_xxx 分支
-3.  提交代码
-4.  新建 Pull Request
+```bash
+# 基本使用
+glimcrawl download "猫咪"
 
+# 指定下载数量
+glimcrawl download "猫咪" -n 50
 
-#### 特技
+# 指定保存目录
+glimcrawl download "猫咪" -d ./images
 
-1.  使用 Readme\_XXX.md 来支持不同的语言，例如 Readme\_en.md, Readme\_zh.md
-2.  Gitee 官方博客 [blog.gitee.com](https://blog.gitee.com)
-3.  你可以 [https://gitee.com/explore](https://gitee.com/explore) 这个地址来了解 Gitee 上的优秀开源项目
-4.  [GVP](https://gitee.com/gvp) 全称是 Gitee 最有价值开源项目，是综合评定出的优秀开源项目
-5.  Gitee 官方提供的使用手册 [https://gitee.com/help](https://gitee.com/help)
-6.  Gitee 封面人物是一档用来展示 Gitee 会员风采的栏目 [https://gitee.com/gitee-stars/](https://gitee.com/gitee-stars/)
+# 使用代理
+glimcrawl download "猫咪" -p http://127.0.0.1:1080
+
+# 筛选大图
+glimcrawl download "猫咪" -s l
+
+# 筛选最近一周的图片
+glimcrawl download "猫咪" -t w
+```
+
+### 作为Python库使用
+
+```python
+import asyncio
+from glimcrawl import GoogleImageCrawler
+from playwright.async_api import async_playwright
+
+async def main():
+    async with async_playwright() as p:
+        browser = await p.chromium.launch(headless=True)
+        crawler = GoogleImageCrawler(
+            browser=browser,
+            max_images=20,
+            save_dir="downloaded_images",
+            proxy="http://127.0.0.1:1080"  # 可选
+        )
+        await crawler.crawl_images("猫咪", size="l", date="w")
+        await browser.close()
+
+asyncio.run(main())
+```
+
+## 参数说明
+
+### 命令行参数
+
+- `keyword`: 搜索关键词（必需）
+- `-n, --max-images`: 最大下载图片数量（默认：20）
+- `-d, --save-dir`: 图片保存目录（默认：downloaded_images）
+- `-p, --proxy`: 代理服务器地址
+- `-s, --size`: 图片尺寸筛选
+  - l: 大图
+  - m: 中图
+  - i: 图标
+- `-t, --date`: 时间筛选
+  - d: 一天内
+  - w: 一周内
+  - m: 一月内
+  - y: 一年内
+
+### Python API
+
+#### GoogleImageCrawler
+
+```python
+class GoogleImageCrawler:
+    def __init__(
+        self,
+        browser: Browser,
+        max_images: int = 20,
+        save_dir: str = "downloaded_images",
+        proxy: str = None
+    ):
+        """
+        初始化Google图片爬虫
+        
+        Args:
+            browser: Playwright浏览器实例
+            max_images: 最大下载图片数量
+            save_dir: 图片保存目录
+            proxy: 代理服务器地址
+        """
+        pass
+
+    async def crawl_images(
+        self,
+        keyword: str,
+        size: str = "",
+        date: str = ""
+    ) -> List[str]:
+        """
+        爬取Google图片搜索结果
+        
+        Args:
+            keyword: 搜索关键词
+            size: 图片尺寸筛选
+            date: 时间筛选
+            
+        Returns:
+            List[str]: 下载的图片URL列表
+        """
+        pass
+```
+
+## 注意事项
+
+1. 使用前请确保已安装Playwright浏览器：
+   ```bash
+   playwright install chromium
+   ```
+
+2. 如果遇到网络问题，可以尝试使用代理：
+   ```bash
+   glimcrawl download "关键词" -p http://your-proxy:port
+   ```
+
+3. 下载的图片会自动进行优化处理：
+   - 转换为JPG格式
+   - 调整大小（最大1920x1080）
+   - 优化质量（85%）
+   - 使用MD5哈希命名
+
+## 许可证
+
+MIT License
+
+## 贡献
+
+欢迎提交Issue和Pull Request！

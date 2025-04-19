@@ -1,3 +1,7 @@
+"""
+Google图片爬虫模块
+"""
+
 import asyncio
 import os
 from typing import List, Optional
@@ -6,8 +10,9 @@ from playwright.async_api import Page, Browser, TimeoutError
 from urllib.parse import quote_plus, unquote
 import random
 import re
-from config import SAVE_DIR
-from image_downloader import ImageDownloader
+from .config import SAVE_DIR
+from .image_downloader import ImageDownloader
+from .image_processor import ImageProcessor
 
 class GoogleImageCrawler:
     def __init__(self, browser: Browser, max_images: int = 20, save_dir: str = "downloaded_images", proxy: str = None):
