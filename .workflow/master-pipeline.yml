@@ -4,7 +4,7 @@ displayName: MasterPipeline
 stages:
   - stage: 
     name: compile
-    displayName: 编译
+    displayName: 编译和测试
     steps:
       - step: build@python
         name: build_python
@@ -16,11 +16,15 @@ stages:
           - name: BUILD_ARTIFACT
             # 构建产物获取路径，是指代码编译完毕之后构建物的所在路径
             path:
-              - ./
+              - ./dist
         commands:
           - python3 -m pip install --upgrade pip
           - pip3 config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple
-          - pip3 install build twine
+          - pip3 install build twine pytest pytest-asyncio flake8
+          - pip3 install -e .
+          - playwright install chromium
+          - flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+          - pytest
           - python3 -m build
       - step: publish@general_artifacts
         name: publish_general_artifacts
