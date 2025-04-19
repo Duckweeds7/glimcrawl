@@ -18,8 +18,8 @@ stages:
             path:
               - ./dist
         commands:
-          - python3 -m pip install --upgrade pip
           - pip3 config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple
+          - python3 -m pip install --upgrade pip
           - pip3 install build twine pytest pytest-asyncio flake8
           - pip3 install -e .
           - playwright install chromium
