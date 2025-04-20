@@ -51,6 +51,9 @@ glimcrawl download "cats" --no-keyword-dir
 
 # Skip if directory exists
 glimcrawl download "cats" -e skip
+
+# Output results in JSON format
+glimcrawl download "cats" -j
 ```
 
 ### Python Library Usage
@@ -64,8 +67,34 @@ async def main():
     async with async_playwright() as p:
         browser = await p.chromium.launch()
         crawler = GoogleImageCrawler(browser)
-        # Download 20 cat images to images directory
-        await crawler.crawl_images("cats", max_images=20, save_dir="images")
+        
+        # Download images and get results
+        result = await crawler.crawl_images(
+            keyword="cats",
+            max_images=20,
+            save_dir="images",
+            use_keyword_dir=True,
+            if_exists="rename",
+            size="l",  # large images
+            date="w"   # within a week
+        )
+        
+        # Print download results
+        print(result)
+        
+        # Get downloaded file paths
+        print("\nDownloaded files:")
+        for path in result.file_paths:
+            print(f"- {path}")
+            
+        # Get statistics
+        print(f"\nDownload statistics:")
+        print(f"- Total images: {result.total_images}")
+        print(f"- Successfully downloaded: {result.success_count}")
+        print(f"- Failed downloads: {result.failed_count}")
+        print(f"- Success rate: {result.success_rate:.1f}%")
+        print(f"- Duration: {result.duration:.1f} seconds")
+        
         await browser.close()
 
 asyncio.run(main())

@@ -51,6 +51,9 @@ glimcrawl download "猫咪" --no-keyword-dir
 
 # 目录已存在时跳过创建
 glimcrawl download "猫咪" -e skip
+
+# 以JSON格式输出结果
+glimcrawl download "猫咪" -j
 ```
 
 ### Python 库使用
@@ -64,8 +67,34 @@ async def main():
     async with async_playwright() as p:
         browser = await p.chromium.launch()
         crawler = GoogleImageCrawler(browser)
-        # 下载 20 张猫咪图片到 images 目录
-        await crawler.crawl_images("猫咪", max_images=20, save_dir="images")
+        
+        # 下载图片并获取结果
+        result = await crawler.crawl_images(
+            keyword="猫咪",
+            max_images=20,
+            save_dir="images",
+            use_keyword_dir=True,
+            if_exists="rename",
+            size="l",  # 大图
+            date="w"   # 一周内
+        )
+        
+        # 打印下载结果
+        print(result)
+        
+        # 获取下载的文件路径
+        print("\n下载的文件:")
+        for path in result.file_paths:
+            print(f"- {path}")
+            
+        # 获取统计信息
+        print(f"\n下载统计:")
+        print(f"- 总图片数: {result.total_images}")
+        print(f"- 成功下载: {result.success_count}")
+        print(f"- 下载失败: {result.failed_count}")
+        print(f"- 成功率: {result.success_rate:.1f}%")
+        print(f"- 耗时: {result.duration:.1f}秒")
+        
         await browser.close()
 
 asyncio.run(main())
@@ -126,11 +155,11 @@ asyncio.run(main())
 
 ## 📄 许可证
 
-[MIT License](LICENSE) © 2024 Duckweeds7
+[MIT License](LICENSE) © 2025 Duckweeds7
 
 ## 📋 更新日志
 
-### v0.1.1 (2024-04-20)
+### v0.1.1 (2025-04-20)
 - ✨ 新增目录管理功能
   - 支持使用关键词创建子目录
   - 支持目录已存在时的处理策略（跳过/覆盖/重命名）
@@ -143,7 +172,7 @@ asyncio.run(main())
   - 完善参数说明
   - 更新示例代码
 
-### v0.1.0 (2024-04-19)
+### v0.1.0 (2025-04-19)
 - 🎉 首次发布
   - 支持基本的图片下载功能
   - 支持图片处理和优化

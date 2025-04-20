@@ -4,16 +4,73 @@ Google图片爬虫模块
 
 import asyncio
 import os
-from typing import List, Optional
+from typing import List, Optional, Dict
+from dataclasses import dataclass
+from datetime import datetime
 from loguru import logger
 from playwright.async_api import Page, Browser, TimeoutError
 from urllib.parse import quote_plus, unquote
 import random
 import re
 from pathlib import Path
-from .config import SAVE_DIR
 from .image_downloader import ImageDownloader
 from .image_processor import ImageProcessor
+
+@dataclass
+class DownloadResult:
+    """下载结果类，用于存储下载信息"""
+    keyword: str  # 搜索关键词
+    save_dir: str  # 保存目录
+    total_images: int  # 总图片数
+    success_count: int  # 成功下载数
+    failed_count: int  # 失败数
+    file_paths: List[str]  # 下载的文件路径列表
+    start_time: datetime  # 开始时间
+    end_time: datetime  # 结束时间
+    size_filter: str = ""  # 尺寸筛选
+    date_filter: str = ""  # 日期筛选
+    
+    @property
+    def duration(self) -> float:
+        """下载持续时间（秒）"""
+        return (self.end_time - self.start_time).total_seconds()
+    
+    @property
+    def success_rate(self) -> float:
+        """下载成功率"""
+        return (self.success_count / self.total_images * 100) if self.total_images > 0 else 0
+    
+    def to_dict(self) -> Dict:
+        """转换为字典格式"""
+        return {
+            "keyword": self.keyword,
+            "save_dir": self.save_dir,
+            "total_images": self.total_images,
+            "success_count": self.success_count,
+            "failed_count": self.failed_count,
+            "file_paths": self.file_paths,
+            "start_time": self.start_time.isoformat(),
+            "end_time": self.end_time.isoformat(),
+            "duration": self.duration,
+            "success_rate": self.success_rate,
+            "size_filter": self.size_filter,
+            "date_filter": self.date_filter
+        }
+    
+    def __str__(self) -> str:
+        """返回格式化的字符串表示"""
+        return f"""下载结果:
+关键词: {self.keyword}
+保存目录: {self.save_dir}
+总图片数: {self.total_images}
+成功下载: {self.success_count}
+下载失败: {self.failed_count}
+成功率: {self.success_rate:.1f}%
+耗时: {self.duration:.1f}秒
+尺寸筛选: {self.size_filter or '无'}
+日期筛选: {self.date_filter or '无'}
+开始时间: {self.start_time.strftime('%Y-%m-%d %H:%M:%S')}
+结束时间: {self.end_time.strftime('%Y-%m-%d %H:%M:%S')}"""
 
 class GoogleImageCrawler:
     def __init__(
@@ -277,7 +334,7 @@ class GoogleImageCrawler:
             logger.error(f"提取图片URL时发生错误: {e}")
             return start_index  # 出错时返回起始索引
             
-    async def crawl_images(self, keyword: str, size: str = "", date: str = "") -> List[str]:
+    async def crawl_images(self, keyword: str, size: str = "", date: str = "") -> DownloadResult:
         """
         爬取Google图片
         
@@ -287,17 +344,18 @@ class GoogleImageCrawler:
             date: 时间范围筛选（d:24小时内，w:一周内，m:一月内，y:一年内）
             
         Returns:
-            List[str]: 下载的图片路径列表
+            DownloadResult: 下载结果对象，包含下载统计信息和文件路径
         """
+        # 记录开始时间
+        start_time = datetime.now()
+        
         # 准备保存目录
         save_dir = self._prepare_save_dir(keyword)
         # 创建下载器，并传入代理配置
         self.downloader = ImageDownloader(save_dir=save_dir, max_concurrent=5, proxy=self.proxy)
         
-        all_image_urls = []
-        
         try:
-            # 构建搜索URL，不添加start参数
+            # 构建搜索URL
             search_url = f"https://www.google.com/search?q={quote_plus(keyword)}&udm=2"
             if size:
                 search_url += f"&tbs=isz:{size}"
@@ -307,8 +365,8 @@ class GoogleImageCrawler:
             
             # 设置浏览器上下文选项
             context_options = {
-                'ignore_https_errors': True,  # 忽略HTTPS证书错误
-                'java_script_enabled': True,  # 启用JavaScript
+                'ignore_https_errors': True,
+                'java_script_enabled': True,
             }
                 
             context = await self.browser.new_context(**context_options)
@@ -317,46 +375,38 @@ class GoogleImageCrawler:
             try:
                 # 访问搜索页面
                 await page.goto(search_url, wait_until='networkidle')
-                
-                # 设置浏览器窗口为全屏
                 await self._set_fullscreen(page)
                 
-                # 等待图片加载
                 if not await self._wait_for_images(page):
                     logger.warning("页面加载失败")
-                    return []
-                    
-                # 初始化提取位置
-                current_index = 0
+                    return DownloadResult(
+                        keyword=keyword,
+                        save_dir=save_dir,
+                        total_images=0,
+                        success_count=0,
+                        failed_count=0,
+                        file_paths=[],
+                        start_time=start_time,
+                        end_time=datetime.now(),
+                        size_filter=size,
+                        date_filter=date
+                    )
                 
-                # 循环提取和滚动，直到达到目标数量或无法加载更多
+                # 提取和下载图片
+                current_index = 0
                 scroll_count = 0
-                while self.downloader.get_downloaded_count() < self.max_images and scroll_count < 10:  # 最多滚动10次
-                    # 提取图片URL并立即开始下载，从上次位置继续
+                while self.downloader.get_downloaded_count() < self.max_images and scroll_count < 10:
                     current_index = await self._extract_image_urls(page, current_index)
-                    
-                    # 如果已经提取完当前页面的所有图片，但下载数量还不够，则滚动加载更多
-                    # 使用正确的方法获取元素数量
                     image_elements = await page.query_selector_all('div[jsname="dTDiAc"]')
-                    total_images = len(image_elements)
                     
-                    if current_index >= total_images:
-                        logger.info("当前页面图片已全部提取，滚动加载更多")
+                    if current_index >= len(image_elements):
                         await self._scroll_page(page)
                         scroll_count += 1
-                        
-                        # 检查是否有新图片加载
-                        new_image_elements = await page.query_selector_all('div[jsname="dTDiAc"]')
-                        new_count = len(new_image_elements)
-                        if new_count <= current_index:
-                            logger.info("没有更多图片可加载")
+                        new_elements = await page.query_selector_all('div[jsname="dTDiAc"]')
+                        if len(new_elements) <= current_index:
                             break
-                            
-                    logger.info(f"当前已处理到第 {current_index} 个图片元素，已下载成功: {self.downloader.get_downloaded_count()}/{self.max_images}")
-                    
-                logger.info(f"URL提取完成，已下载成功: {self.downloader.get_downloaded_count()}/{self.max_images}")
                 
-                # 等待所有下载任务完成或达到目标数量
+                # 等待所有下载完成
                 await self.downloader.wait_for_downloads(target_count=self.max_images)
                 
             finally:
@@ -365,8 +415,36 @@ class GoogleImageCrawler:
                 
         except Exception as e:
             logger.error(f"爬取图片时发生错误: {e}")
-            
-        return all_image_urls[:self.max_images]  # 确保不超过请求的数量 
+        
+        # 获取下载统计
+        success_count = self.downloader.get_downloaded_count()
+        failed_count = self.downloader.get_failed_count()
+        total_count = self.downloader.get_total_count()
+        
+        # 获取下载的文件路径
+        file_paths = []
+        if self.use_keyword_dir:
+            keyword_dir = Path(save_dir) / keyword
+            if keyword_dir.exists():
+                file_paths = [str(f) for f in keyword_dir.glob("*.jpg")]
+        else:
+            save_dir_path = Path(save_dir)
+            if save_dir_path.exists():
+                file_paths = [str(f) for f in save_dir_path.glob("*.jpg")]
+        
+        # 返回下载结果
+        return DownloadResult(
+            keyword=keyword,
+            save_dir=save_dir,
+            total_images=total_count,
+            success_count=success_count,
+            failed_count=failed_count,
+            file_paths=file_paths,
+            start_time=start_time,
+            end_time=datetime.now(),
+            size_filter=size,
+            date_filter=date
+        )
         
     async def _set_fullscreen(self, page: Page) -> None:
         """
@@ -440,13 +518,12 @@ if __name__ == "__main__":
                 crawler = GoogleImageCrawler(browser, max_images=max_images, save_dir=save_dir, proxy=proxy_server)
                 
                 # 执行搜索并获取图片URL，同时下载图片
-                image_urls = await crawler.crawl_images(keyword)
+                result = await crawler.crawl_images(keyword)
                 
                 # 打印结果
-                print(f"\n获取到的图片URL列表:")
-                for i, url in enumerate(image_urls, 1):
-                    print(f"{i}. {url}")
-                    
+                print(f"\n下载结果:")
+                print(result)
+                
             except Exception as e:
                 print(f"运行过程中发生错误: {e}")
             finally:
