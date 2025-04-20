@@ -1,62 +1,62 @@
 [build-system]
-requires = ["setuptools>=45", "wheel", "setuptools_scm>=6.2"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [project]
 name = "glimcrawl"
-version = "0.1.1"
-description = "一个强大的Google图片爬虫工具"
+version = "0.1.2"
+description = "A powerful Google image crawler that supports batch downloading, image processing, and proxy settings"
 readme = "README.md"
-requires-python = ">=3.7"
-license = "MIT"
-keywords = ["crawler", "image", "google", "downloader"]
+requires-python = ">=3.8"
+license = {text = "MIT"}
 authors = [
     {name = "Duckweeds7", email = "root@duckweeds7.com"}
 ]
-dependencies = [
-    "loguru>=0.7.2",
-    "playwright>=1.41.2",
-    "aiohttp>=3.9.1",
-    "aiofiles>=23.2.1",
-    "Pillow>=10.0.0",
-    "click>=8.0.0",
-]
+keywords = ["image", "crawler", "google", "download", "process"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
-    "Topic :: Software Development :: Libraries :: Python Modules",
+    "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.7",
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+dependencies = [
+    "playwright>=1.41.0",
+    "aiohttp>=3.9.0",
+    "Pillow>=10.0.0",
+    "loguru>=0.7.0",
+    "typer>=0.9.0",
+    "rich>=13.0.0",
 ]
 
 [project.urls]
 Homepage = "https://gitee.com/duckweeds7/glimcrawl"
-Repository = "https://gitee.com/duckweeds7/glimcrawl.git"
+Repository = "https://gitee.com/duckweeds7/glimcrawl"
 Documentation = "https://gitee.com/duckweeds7/glimcrawl#readme"
+Issues = "https://gitee.com/duckweeds7/glimcrawl/issues"
+Changelog = "https://gitee.com/duckweeds7/glimcrawl/blob/master/CHANGELOG.md"
 
 [project.scripts]
-glimcrawl = "glimcrawl.cli:main"
+glimcrawl = "glimcrawl.cli:app"
 
-[tool.setuptools]
+[tool.hatch.build.targets.wheel]
 packages = ["glimcrawl"]
 
-[tool.setuptools_scm]
-write_to = "glimcrawl/_version.py"
+[tool.hatch.build]
+include = [
+    "glimcrawl/**/*.py",
+]
 
-[tool.black]
-line-length = 88
-target-version = ['py37']
-include = '\.pyi?$'
+[tool.hatch.build.exclude]
+include = [
+    "tests/**",
+    "docs/**",
+    ".github/**",
+]
 
-[tool.isort]
-profile = "black"
-multi_line_output = 3
-
-[tool.pytest.ini_options]
-testpaths = ["tests"]
-python_files = ["test_*.py"]
-addopts = "-ra -q" 
+[tool.hatch.metadata]
+allow-direct-references = true 
