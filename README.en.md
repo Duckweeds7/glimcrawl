@@ -17,6 +17,7 @@ A powerful Google image crawler that supports batch downloading, image processin
 - 🖥️ Easy-to-use command-line interface
 - 📦 Can be used as a Python library
 - 🔒 Safe and reliable, follows Google search guidelines
+- 📁 Flexible directory management (keyword subdirectories, directory existence handling)
 
 ## 📦 Installation
 
@@ -37,13 +38,19 @@ playwright install chromium
 glimcrawl download "cats"
 
 # Specify download count and save directory
-glimcrawl download "cats" -n 50 -d ./images
+glimcrawl download "cats" -l 50 -d ./images
 
 # Use proxy
 glimcrawl download "cats" -p http://127.0.0.1:1080
 
 # Filter large and recent images
 glimcrawl download "cats" -s l -t w
+
+# Disable keyword subdirectory
+glimcrawl download "cats" --no-keyword-dir
+
+# Skip if directory exists
+glimcrawl download "cats" -e skip
 ```
 
 ### Python Library Usage
@@ -71,8 +78,10 @@ asyncio.run(main())
 | Parameter | Description | Default | Example |
 |-----------|-------------|---------|---------|
 | `keyword` | Search keyword (required) | - | `"cats"` |
-| `-n, --max-images` | Maximum download count | 20 | `-n 50` |
-| `-d, --save-dir` | Save directory | downloaded_images | `-d ./images` |
+| `-l, --limit` | Maximum download count | 100 | `-l 50` |
+| `-d, --save-dir` | Save directory | images | `-d ./images` |
+| `--use-keyword-dir/--no-keyword-dir` | Use keyword for subdirectory | True | `--no-keyword-dir` |
+| `-e, --if-exists` | Directory existence handling | rename | `-e skip` |
 | `-p, --proxy` | Proxy server | None | `-p http://127.0.0.1:1080` |
 | `-s, --size` | Image size | None | `-s l` (large) |
 | `-t, --date` | Time range | None | `-t w` (within week) |
@@ -127,3 +136,25 @@ Downloaded images are automatically processed with:
 4.  The most valuable open source project [GVP](https://gitee.com/gvp)
 5.  The manual of Gitee [https://gitee.com/help](https://gitee.com/help)
 6.  The most popular members  [https://gitee.com/gitee-stars/](https://gitee.com/gitee-stars/)
+
+## 📋 Changelog
+
+### v0.1.1 (2024-04-20)
+- ✨ New directory management features
+  - Support for keyword-based subdirectories
+  - Directory existence handling strategies (skip/overwrite/rename)
+  - Optimized directory creation and file saving logic
+- 🐛 Bug fixes
+  - Fixed directory existence handling logic
+  - Improved file naming and saving mechanism
+- 📝 Documentation updates
+  - Added new feature usage instructions
+  - Enhanced parameter descriptions
+  - Updated example code
+
+### v0.1.0 (2024-04-19)
+- 🎉 Initial release
+  - Basic image downloading functionality
+  - Image processing and optimization
+  - Proxy support
+  - Command-line interface

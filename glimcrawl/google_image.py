@@ -10,12 +10,21 @@ from playwright.async_api import Page, Browser, TimeoutError
 from urllib.parse import quote_plus, unquote
 import random
 import re
+from pathlib import Path
 from .config import SAVE_DIR
 from .image_downloader import ImageDownloader
 from .image_processor import ImageProcessor
 
 class GoogleImageCrawler:
-    def __init__(self, browser: Browser, max_images: int = 20, save_dir: str = "downloaded_images", proxy: str = None):
+    def __init__(
+        self, 
+        browser: Browser, 
+        max_images: int = 20, 
+        save_dir: str = "downloaded_images", 
+        proxy: str = None,
+        use_keyword_dir: bool = True,
+        if_exists: str = "rename"
+    ):
         """
         初始化Google图片爬虫
         
@@ -24,13 +33,56 @@ class GoogleImageCrawler:
             max_images: 最大下载图片数量
             save_dir: 图片保存目录
             proxy: 代理服务器地址，格式如 "http://127.0.0.1:1080"
+            use_keyword_dir: 是否使用关键词创建子目录
+            if_exists: 目录已存在时的处理方式（skip/overwrite/rename）
         """
         self.browser = browser
         self.max_images = max_images
-        self.save_dir = save_dir
+        self.base_save_dir = save_dir
         self.proxy = proxy
-        # 创建下载器，并传入代理配置
-        self.downloader = ImageDownloader(save_dir=save_dir, max_concurrent=5, proxy=proxy)
+        self.use_keyword_dir = use_keyword_dir
+        self.if_exists = if_exists
+        
+    def _prepare_save_dir(self, keyword: str) -> str:
+        """
+        准备保存目录
+        
+        Args:
+            keyword: 搜索关键词
+            
+        Returns:
+            str: 实际的保存目录路径
+        """
+        # 确保基础目录存在
+        base_dir = Path(self.base_save_dir)
+        base_dir.mkdir(parents=True, exist_ok=True)
+        
+        if not self.use_keyword_dir:
+            return str(base_dir)
+            
+        # 处理关键词目录
+        keyword_dir = base_dir / keyword
+        
+        if keyword_dir.exists():
+            if self.if_exists == 'skip':
+                logger.info(f"目录 '{keyword_dir}' 已存在，跳过创建")
+                return str(keyword_dir)
+            elif self.if_exists == 'overwrite':
+                logger.info(f"目录 '{keyword_dir}' 已存在，将覆盖内容")
+                return str(keyword_dir)
+            else:  # rename
+                counter = 1
+                while True:
+                    new_dir = base_dir / f"{keyword}_{counter}"
+                    if not new_dir.exists():
+                        keyword_dir = new_dir
+                        break
+                    counter += 1
+                logger.info(f"目录已存在，使用新名称：'{keyword_dir}'")
+        
+        # 创建目录
+        keyword_dir.mkdir(parents=True, exist_ok=True)
+        return str(keyword_dir)
         
     async def _wait_for_images(self, page: Page, timeout: int = 10000) -> bool:
         """等待图片加载完成"""
@@ -226,7 +278,22 @@ class GoogleImageCrawler:
             return start_index  # 出错时返回起始索引
             
     async def crawl_images(self, keyword: str, size: str = "", date: str = "") -> List[str]:
-        """爬取Google图片搜索结果并下载图片"""
+        """
+        爬取Google图片
+        
+        Args:
+            keyword: 搜索关键词
+            size: 图片尺寸筛选（l:大图，m:中图，i:图标）
+            date: 时间范围筛选（d:24小时内，w:一周内，m:一月内，y:一年内）
+            
+        Returns:
+            List[str]: 下载的图片路径列表
+        """
+        # 准备保存目录
+        save_dir = self._prepare_save_dir(keyword)
+        # 创建下载器，并传入代理配置
+        self.downloader = ImageDownloader(save_dir=save_dir, max_concurrent=5, proxy=self.proxy)
+        
         all_image_urls = []
         
         try:

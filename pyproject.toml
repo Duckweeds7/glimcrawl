@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "glimcrawl"
-version = "0.1.0"
+version = "0.1.1"
 description = "一个强大的Google图片爬虫工具"
 readme = "README.md"
 requires-python = ">=3.7"

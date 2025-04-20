@@ -17,6 +17,7 @@
 - 🖥️ 命令行界面，易于使用
 - 📦 支持作为 Python 库导入使用
 - 🔒 安全可靠，遵循 Google 搜索规范
+- 📁 灵活的目录管理（支持关键词子目录、目录存在处理等）
 
 ## 📦 安装
 
@@ -37,13 +38,19 @@ playwright install chromium
 glimcrawl download "猫咪"
 
 # 指定下载数量和保存目录
-glimcrawl download "猫咪" -n 50 -d ./images
+glimcrawl download "猫咪" -l 50 -d ./images
 
 # 使用代理
 glimcrawl download "猫咪" -p http://127.0.0.1:1080
 
 # 筛选大图和最近图片
 glimcrawl download "猫咪" -s l -t w
+
+# 禁用关键词子目录
+glimcrawl download "猫咪" --no-keyword-dir
+
+# 目录已存在时跳过创建
+glimcrawl download "猫咪" -e skip
 ```
 
 ### Python 库使用
@@ -71,8 +78,10 @@ asyncio.run(main())
 | 参数 | 说明 | 默认值 | 示例 |
 |------|------|--------|------|
 | `keyword` | 搜索关键词（必需） | - | `"猫咪"` |
-| `-n, --max-images` | 最大下载数量 | 20 | `-n 50` |
-| `-d, --save-dir` | 保存目录 | downloaded_images | `-d ./images` |
+| `-l, --limit` | 最大下载数量 | 100 | `-l 50` |
+| `-d, --save-dir` | 保存目录 | images | `-d ./images` |
+| `--use-keyword-dir/--no-keyword-dir` | 是否使用关键词创建子目录 | True | `--no-keyword-dir` |
+| `-e, --if-exists` | 目录已存在时的处理方式 | rename | `-e skip` |
 | `-p, --proxy` | 代理服务器 | None | `-p http://127.0.0.1:1080` |
 | `-s, --size` | 图片尺寸 | None | `-s l` (大图) |
 | `-t, --date` | 时间范围 | None | `-t w` (一周内) |
@@ -118,3 +127,25 @@ asyncio.run(main())
 ## 📄 许可证
 
 [MIT License](LICENSE) © 2024 Duckweeds7
+
+## 📋 更新日志
+
+### v0.1.1 (2024-04-20)
+- ✨ 新增目录管理功能
+  - 支持使用关键词创建子目录
+  - 支持目录已存在时的处理策略（跳过/覆盖/重命名）
+  - 优化目录创建和文件保存逻辑
+- 🐛 修复已知问题
+  - 修复目录已存在时的处理逻辑
+  - 优化文件命名和保存机制
+- 📝 更新文档
+  - 添加新功能使用说明
+  - 完善参数说明
+  - 更新示例代码
+
+### v0.1.0 (2024-04-19)
+- 🎉 首次发布
+  - 支持基本的图片下载功能
+  - 支持图片处理和优化
+  - 支持代理设置
+  - 支持命令行界面

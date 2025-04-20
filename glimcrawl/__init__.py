@@ -6,7 +6,7 @@ from .google_image import GoogleImageCrawler
 from .image_downloader import ImageDownloader
 from .image_processor import ImageProcessor
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 __all__ = [
     "GoogleImageCrawler",
