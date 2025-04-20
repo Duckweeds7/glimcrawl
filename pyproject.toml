@@ -43,20 +43,12 @@ Changelog = "https://gitee.com/duckweeds7/glimcrawl/blob/master/CHANGELOG.md"
 [project.scripts]
 glimcrawl = "glimcrawl.cli:app"
 
-[tool.hatch.build.targets.wheel]
-packages = ["glimcrawl"]
-
 [tool.hatch.build]
 include = [
     "glimcrawl/**/*.py",
 ]
-
-[tool.hatch.build.exclude]
 exclude = [
     "tests/**",
     "docs/**",
     ".github/**",
-]
-
-[tool.hatch.metadata]
-allow-direct-references = true 
+] 
