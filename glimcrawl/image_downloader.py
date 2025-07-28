@@ -64,45 +64,30 @@ class ImageDownloader:
                 if proxy:
                     logger.debug(f"使用代理下载图片: {proxy}")
                 
-                # 下载图片
                 async with aiohttp.ClientSession() as session:
-                    # 设置代理
+                    # 设置请求参数
+                    request_kwargs = {"timeout": 30}
                     if proxy:
-                        async with session.get(url, timeout=30, proxy=proxy) as response:
-                            if response.status == 200:
-                                # 读取图片数据
-                                image_data = await response.read()
-                                
-                                # 使用图片处理器处理和保存图片
-                                save_path = self.image_processor.save_image(image_data, keyword, index)
-                                
-                                if save_path:
-                                    logger.info(f"成功下载并处理图片: {save_path}")
-                                    return True
-                                else:
-                                    logger.warning(f"处理图片失败: {url}")
-                                    return False
+                        request_kwargs["proxy"] = proxy
+                    
+                    # 发送请求
+                    async with session.get(url, **request_kwargs) as response:
+                        if response.status == 200:
+                            # 读取图片数据
+                            image_data = await response.read()
+                            
+                            # 使用图片处理器处理和保存图片
+                            save_path = self.image_processor.save_image(image_data, keyword, index)
+                            
+                            if save_path:
+                                logger.info(f"成功下载并处理图片: {save_path}")
+                                return True
                             else:
-                                logger.warning(f"下载图片失败，状态码: {response.status}, URL: {url}")
+                                logger.warning(f"处理图片失败: {url}")
                                 return False
-                    else:
-                        async with session.get(url, timeout=30) as response:
-                            if response.status == 200:
-                                # 读取图片数据
-                                image_data = await response.read()
-                                
-                                # 使用图片处理器处理和保存图片
-                                save_path = self.image_processor.save_image(image_data, keyword, index)
-                                
-                                if save_path:
-                                    logger.info(f"成功下载并处理图片: {save_path}")
-                                    return True
-                                else:
-                                    logger.warning(f"处理图片失败: {url}")
-                                    return False
-                            else:
-                                logger.warning(f"下载图片失败，状态码: {response.status}, URL: {url}")
-                                return False
+                        else:
+                            logger.warning(f"下载图片失败，状态码: {response.status}, URL: {url}")
+                            return False
                             
         except Exception as e:
             logger.error(f"下载图片时发生错误: {e}, URL: {url}")
